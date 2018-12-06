@@ -15,6 +15,8 @@ import javax.vecmath.Vector3d;
  * ->Uniform Grid Sampling
  * 	http://www.cs.tut.fi/~dkuva2/Lecture7_SamplingAndInterpolation_v3.pdf
  * 	http://web.cs.wpi.edu/~emmanuel/courses/cs563/S10/talks/wk3_p1_wadii_sampling_techniques.pdf
+ * ->Stochastic Sampling
+ * 	http://www.cs.cmu.edu/afs/cs/academic/class/15869-f11/www/readings/cook86_sampling.pdf
  */
 public class Scene {
     
@@ -32,6 +34,8 @@ public class Scene {
     
     /** The number of recursive reflection calls */
     public int reflections = 0;
+    
+    public static double epsilonScaler = 1e-9;
 
     /** 
      * Default constructor.
@@ -39,6 +43,7 @@ public class Scene {
     public Scene() {
     	this.render = new Render();
     }
+    
     
     /**
      * renders the scene
@@ -57,32 +62,33 @@ public class Scene {
             	
             	int columns = (int) Math.sqrt(render.samples);
             	int rows = render.samples / columns;
-            	int remainder = render.samples - (rows * columns);
+            	int remainder = render.samples - (columns * rows);
             	
             	for(int k = 0; k < rows; k++){
             		
             		int numCol = columns;
-            		if(k == rows - 1)
+            		if(k == rows - 1) {
             			numCol += remainder;
+            		}
             		
-            		for(int l = 0; l < numCol; l++){//iterate through columns
+            		for(int l = 0; l < numCol; l++) {//iterate through columns
             			// The width of a sub-pixel
-                    	double areax = (1.0 / (numCol+1));
+                    	double areaX = (1.0 / (numCol+1));
                     	// The height of a sub-pixel
-                    	double areay = (1.0/ (rows+1));
+                    	double areaY = (1.0/ (rows+1));
                     	// If there is no jitter, the ray is directed at the center of the sub-pixel's area
-                    	double jitterx = areax / 2;
-                    	double jittery = areay / 2;
+                    	double jitterX = areaX / 2;
+                    	double jitterY = areaY / 2;
                     	// If the scene has jitter, we direct the ray at a random x and y
                     	// within the sub-pixel's area
                     	if(render.jitter){
-                        	jitterx = Math.random() * areax;
-                        	jittery = Math.random() * areay;
+                        	jitterX = Math.random() * areaX;
+                        	jitterY = Math.random() * areaY;
                     	}
                     	// The ray for sub-pixel (k, l) has x offset k*areax+jitterx-0.5 from the center of the main pixel
                     	// and y offset l*areay+jittery-0.5 from the center of the main pixel
-                    	double xOffset = k * areax + jitterx - 0.5;
-                    	double yOffset = l * areay + jittery - 0.5;
+                    	double xOffset = k * areaX + jitterX - 0.5;
+                    	double yOffset = l * areaY + jitterY - 0.5;
                     	// Generate the offsetted ray and add it to the list of rays
                     	Ray ray = new Ray();
                 		generateRay(i, j, new double[]{yOffset,xOffset}, cam, ray);
@@ -106,7 +112,7 @@ public class Scene {
             	}
             	
             	// Average the contribution of each offsetted ray (divide by number of rays)
-            	total.scale((float) (1.0/render.samples));
+            	total.scale((float) (1.0 / render.samples));
             	total.clampMax(1);//No color component can be greater than 1 (255 rgb max)
             	//Convert the color to rgb
             	int r = (int)(255 * total.x);
@@ -137,52 +143,45 @@ public class Scene {
      * @return The color for the ray's intersection
      */
     public Color4f calcColorValue(final Ray ray, final IntersectResult result, int level){
-    	//By default, the color will be the background color of the render.
     	Color4f L = new Color4f(render.bgcolor.x, render.bgcolor.y, render.bgcolor.z, 0);
-    	//If the ray intersects a surface
+    	
     	if(result.t < Double.POSITIVE_INFINITY){
-    		// First we add the ambiant light contribution
-    		L = new Color4f(ambient.x * result.material.diffuse.x,
-    				ambient.y * result.material.diffuse.y, ambient.z * result.material.diffuse.z, 0);
+    		// First we add the ambient light contribution
+    		float AMB_X = ambient.x * result.material.diffuse.x;
+    		float AMB_Y = ambient.y * result.material.diffuse.y;
+    		float AMB_Z = ambient.z * result.material.diffuse.z;
+    		L = new Color4f(AMB_X, AMB_Y, AMB_Z, 0);
     		// Then we sum the diffuse and specular contribution of each light
     		for(String key: lights.keySet()){
-    			Light light = lights.get(key);//The current light
-    			// We first cast a shadow ray from the intersection point to the current light, and
-    			// only continue if the shadow ray does not collide with a surface (no shadow)
-        		if(!inShadow(result, light, surfaceList, new IntersectResult(), new Ray())){
-        			// l is the normalized vector from the intersection point to the light
-        			Vector3d l = new Vector3d(light.from);
+    			Light currentLight = lights.get(key);
+
+        		if(!inShadow(result, currentLight, surfaceList, new IntersectResult(), new Ray())){
+
+        			Vector3d l = new Vector3d(currentLight.from);
         			l.sub(result.p);
         			l.normalize();
-        			// Bisector is vector between l and v (v=vector from intersection to ray source)
+
         			Vector3d bisector = new Vector3d(ray.eyePoint);
         			bisector.sub(result.p);
         			bisector.normalize();
         			bisector.add(l);
         			bisector.normalize();
         			
-        			// Now we calculate diffuse light which is k_d*I*max(0, n dot l)
-        			// Where I is the light's color scaled by the light's power
-        			Color4f diffuse = new Color4f(result.material.diffuse.x * light.color.x,
-        					result.material.diffuse.y * light.color.y, result.material.diffuse.z * light.color.z, 1);
-        			diffuse.scale((float)(light.power * Math.max(0, result.n.dot(l))));
+
+        			Color4f diffuse = new Color4f(result.material.diffuse.x * currentLight.color.x,
+        					result.material.diffuse.y * currentLight.color.y, result.material.diffuse.z * currentLight.color.z, 1);
+        			diffuse.scale((float)(currentLight.power * Math.max(0, result.n.dot(l))));
         			L.add(diffuse);// Add diffuse contribution
         			
-        			// Now calculate specular lighting with blinn-phong model
-        			// k_s*I*max(0, n dot bisector)^p, with I being the light color scaled by its power
-        			Color4f specular=new Color4f(result.material.specular.x*light.color.x,
-        					result.material.specular.y * light.color.y,result.material.specular.z * light.color.z,1);
-        			specular.scale((float)(light.power * Math.pow(Math.max(0, result.n.dot(bisector)), result.material.shinyness)));
+
+        			Color4f specular=new Color4f(result.material.specular.x*currentLight.color.x,
+        					result.material.specular.y * currentLight.color.y,result.material.specular.z * currentLight.color.z,1);
+        			specular.scale((float)(currentLight.power * Math.pow(Math.max(0, result.n.dot(bisector)), result.material.shinyness)));
         			L.add(specular);// Add specular contribution
         			
-        			// For bonus points part 11, I added recursive reflections.
-        			// I based myself on page 87 of the textbook
         			if(level > 0){// If we are not at the last level of recursion
         				// Cast a reflected ray starting from the intersection point
         				Ray refRay=new Ray();
-        				// The direction of the reflected ray is the direction
-        				// of the original ray reflected about the normal
-        				// obtained by r=d-2(d dot n)*n (from textbook)
         				refRay.viewDirection.set(result.n);
         				refRay.viewDirection.scale(-2*ray.viewDirection.dot(result.n));
         				refRay.viewDirection.add(ray.viewDirection);
@@ -222,9 +221,7 @@ public class Scene {
      * @param ray Contains the generated ray.
      */
 	public static void generateRay(final int i, final int j, final double[] offset, final Camera cam, Ray ray) {
-		// From page 75 of the textbook
-		// First we calculate an orthonormal basis (u,v,w) for the camera.
-		// w is the opposite of the viewing direction
+		
 		Vector3d w = new Vector3d(cam.from);
 		w.sub(cam.to);
 		// length of w before it is normalized gives the distance to the image plane
@@ -249,19 +246,17 @@ public class Scene {
 		// -direction=-distance*w+a*u+b*v, where a and b are the position of pixels
 		// i and j on the image plane. (See page 75 textbook)
 		Vector3d direction = new Vector3d();
-		// scale u by a=left+(right-left)(j+0.5+offset)/nx
-		// an offset was added to j for antialiasing
+		
 		u.scale(left + (right - left) * (j + 0.5 + offset[1]) / cam.imageSize.width);
-		// scale v by b=top+(top-bottom)(i+0.5+offset)/ny
+		
 		v.scale(bottom + (top - bottom) * (i + 0.5 + offset[0])/cam.imageSize.height);
 		w.scale(distance);
 		
-		// Now the basis vectors are scaled correctly, so we calculate the ray's direction
 		direction.add(u);
 		direction.add(v);
 		direction.sub(w);
-		ray.eyePoint=new Point3d(cam.from);//The ray starts from the camera
-		ray.viewDirection=direction;//Set the ray's direction
+		ray.eyePoint=new Point3d(cam.from);
+		ray.viewDirection=direction;
 	}
 
 	/**
@@ -278,7 +273,7 @@ public class Scene {
 		shadowRay.viewDirection.set(light.from);
 		shadowRay.viewDirection.sub(result.p);
 		shadowRay.eyePoint = new Point3d(shadowRay.viewDirection);
-		shadowRay.eyePoint.scale(1e-9);
+		shadowRay.eyePoint.scale(Scene.epsilonScaler);
 		shadowRay.eyePoint.add(result.p);
 		for(Intersectable surface:surfaces)
 			surface.intersect(shadowRay, shadowResult);

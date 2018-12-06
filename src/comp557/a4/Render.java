@@ -59,7 +59,10 @@ public class Render extends WindowAdapter {
     /** Flag to indicate when rendering should stop */
     private boolean done;
     
-    /** Flag to indicate if per pixel jittering should be activated */
+    /** Flag for per-pixel jitter */
+    /*
+     * Objective 8 add boolean for jitter to render
+     */
     public boolean jitter;
     
     /**

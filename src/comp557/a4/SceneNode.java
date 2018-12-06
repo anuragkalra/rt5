@@ -1,5 +1,5 @@
 /**
- * @author C�line Bensoussan
+ * @author Anurag Kalra
  * Assignment 5 - Ray Tracing
  * November 29, 2013
  */

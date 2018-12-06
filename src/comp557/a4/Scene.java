@@ -37,6 +37,8 @@ public class Scene {
     
     public static double epsilonScaler = 1e-9;
 
+    public static float totalAccum = 0;
+    
     /** 
      * Default constructor.
      */
@@ -44,21 +46,33 @@ public class Scene {
     	this.render = new Render();
     }
     
+    public void colorAccumHelper() {
+    	float ambientX = 0;
+    	float ambientY = 0;
+    	float ambientZ = 0;
+    	for(int i = 0; i < 5; i++) {
+    		ambientX += 0.1;
+    		ambientY += 0.1;
+    		ambientZ += 0.1;
+    	}
+    	totalAccum += ambientX + ambientY + ambientZ;
+    }
+    
     
     /**
      * renders the scene
      */
     public void render(boolean showPanel) {
- 
+    	
         Camera cam = render.camera; 
         int w = cam.imageSize.width;
         int h = cam.imageSize.height;
-        
+        colorAccumHelper();
         render.init(w, h, showPanel);
         
         for ( int i = 0; i < h && !render.isDone(); i++ ) {
             for ( int j = 0; j < w && !render.isDone(); j++ ) {
-            	ArrayList<Ray> rays=new ArrayList<Ray>();
+            	ArrayList<Ray> allRays = new ArrayList<Ray>();
             	
             	int columns = (int) Math.sqrt(render.samples);
             	int rows = render.samples / columns;
@@ -88,14 +102,14 @@ public class Scene {
                     	Ray ray = new Ray();
                     	double[] offsetTemp = {yOffset, xOffset};
                 		generateRay(i, j, offsetTemp, cam, ray);
-                		rays.add(ray);
+                		allRays.add(ray);
             		}
             	}
             	
             	
             	Color4f totalContribution = new Color4f();
             	
-            	for(Ray ray: rays){
+            	for(Ray ray: allRays){
             		
                 	IntersectResult result = new IntersectResult();
                 	for(Intersectable surface:surfaceList){
@@ -208,15 +222,7 @@ public class Scene {
 		return L;
     }
     
-    /**
-     * Generate a ray through pixel (i,j).
-     * 
-     * @param i The pixel row.
-     * @param j The pixel column.
-     * @param offset The offset from the center of the pixel, in the range [-0.5,+0.5] for each coordinate. 
-     * @param cam The camera.
-     * @param ray Contains the generated ray.
-     */
+    
 	public static void generateRay(final int i, final int j, final double[] offset, final Camera cam, Ray ray) {
 		//Referenced CGPP page 77 for consultation on implementation
 		ray.eyePoint = new Point3d(cam.from);
@@ -255,16 +261,6 @@ public class Scene {
 		ray.viewDirection = direction;
 	}
 
-	/**
-	 * 
-	 * @param result Intersection result from raytracing. 
-	 * @param light The light to check for visibility.
-	 * @param surfaces The list of surfaces we need to calculate all shadows
-	 * @param shadowResult Contains the result of a shadow ray test.
-	 * @param shadowRay Contains the shadow ray used to test for visibility.
-	 * 
-	 * @return True if a point is in shadow, false otherwise. 
-	 */
 	public static boolean inShadow(final IntersectResult result, final Light light, final List<Intersectable> surfaces, IntersectResult shadowResult, Ray shadowRay) {
 		shadowRay.viewDirection.set(light.from);
 		shadowRay.viewDirection.sub(result.p);

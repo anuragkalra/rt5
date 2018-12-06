@@ -69,7 +69,6 @@ public class SceneNode extends Intersectable {
 			T.transpose(Minv);
 			T.transform(closer.n);
 			
-			//We only care about this intersection point if it is the closest from light source
 			if(closer.t < result.t){
 				result.t = closer.t;
 				result.material = closer.material;

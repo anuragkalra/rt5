@@ -36,35 +36,37 @@ public class Mesh extends Intersectable {
 	@Override
 	public void intersect(Ray ray, IntersectResult result) {	
 
-		double a,b,c,d,e,f,g,h,i,j,k,l,M,beta, gamma, t;
+		double aPoint,bPoint,cPoint,dPoint,ePoint,fPoint,gPoint,hPoint;
+		double iPoint,jPoint,kPoint,lPoint,transformM,beta, gamma, t;
 		
 		for(int[] faceVertex: soup.faceList){		
 			Point3d A = soup.vertexList.get( faceVertex[0] ).p;
 			Point3d B = soup.vertexList.get( faceVertex[1] ).p;
 			Point3d C = soup.vertexList.get( faceVertex[2] ).p;		
 
-			a = A.x - B.x;
-			b = A.y - B.y;
-			c = A.z - B.z;
-			d = A.x - C.x;
-			e = A.y - C.y;
-			f = A.z - C.z;
-			g = ray.viewDirection.x;
-			h = ray.viewDirection.y;
-			i = ray.viewDirection.z;
-			j = A.x - ray.eyePoint.x;
-			k = A.y - ray.eyePoint.y;
-			l = A.z - ray.eyePoint.z;
+			aPoint = A.x - B.x;
+			bPoint = A.y - B.y;
+			cPoint = A.z - B.z;
+			dPoint = A.x - C.x;
+			ePoint = A.y - C.y;
+			fPoint = A.z - C.z;
+			gPoint = ray.viewDirection.x;
+			hPoint = ray.viewDirection.y;
+			iPoint = ray.viewDirection.z;
+			jPoint = A.x - ray.eyePoint.x;
+			kPoint = A.y - ray.eyePoint.y;
+			lPoint = A.z - ray.eyePoint.z;
 
-			M = a*((e*i)-(h*f)) + b*((g*f)-(d*i)) + c*((d*h)-(e*g));
+			transformM = aPoint * ((ePoint * iPoint) - (hPoint * fPoint)) + bPoint * ((gPoint * fPoint) - (dPoint * iPoint)) + cPoint * ((dPoint * hPoint) - (ePoint * gPoint));
 			
-			t = - (f*(a*k-j*b) + e*(j*c-a*l) + d*(b*l-k*c)) / M;
+			t = - (fPoint*(aPoint*kPoint-jPoint*bPoint) + ePoint*(jPoint*cPoint-aPoint*lPoint) + dPoint*(bPoint*lPoint-kPoint*cPoint)) / transformM;
 
-			if(t > -0.0001 && t < result.t){
-				gamma = (i*(a*k-j*b) + h*(j*c-a*l) + g*(b*l-k*c)) / M;
+			boolean checker = t > -0.0001 && t < result.t;
+			if(checker){
+				gamma = (iPoint*(aPoint*kPoint-jPoint*bPoint) + hPoint*(jPoint*cPoint-aPoint*lPoint) + gPoint*(bPoint*lPoint-kPoint*cPoint)) / transformM;
 				
 				if(gamma > 0 & gamma < 1){
-					beta = (j*(e*i-h*f) + k*(g*f-d*i) + l*(d*h-e*g)) / M;
+					beta = (jPoint*(ePoint*iPoint-hPoint*fPoint) + kPoint*(gPoint*fPoint-dPoint*iPoint) + lPoint*(dPoint*hPoint-ePoint*gPoint)) / transformM;
 					
 					if(beta > 0 && beta < 1-gamma){
 						//Intersection point is: p = e + td
@@ -75,7 +77,7 @@ public class Mesh extends Intersectable {
 						result.material = this.material;
 						result.t = t;
 
-						//Normal
+						//Normal calculation
 						Vector3d ba = new Vector3d();
 						Vector3d ca = new Vector3d();
 						Vector3d n = new Vector3d();

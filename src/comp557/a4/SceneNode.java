@@ -65,11 +65,13 @@ public class SceneNode extends Intersectable {
 			
 			child.intersect(ray, closer);
 			
+			//Transform calculation
 			Matrix4d T = new Matrix4d();			
 			T.transpose(Minv);
 			T.transform(closer.n);
 			
-			if(closer.t < result.t){
+			boolean closerCheck = closer.t < result.t;
+			if(closerCheck == true){
 				result.t = closer.t;
 				result.material = closer.material;
 				M.transform(closer.p);
@@ -77,9 +79,11 @@ public class SceneNode extends Intersectable {
 				result.n = closer.n;	
 			}		
 		}
+		//if not null material set the SAME material (similar in scene render)
 		if(this.material != null){
 			result.material = this.material;
 		}
+		
 		result.n.normalize();
 		
 		M.transform(ray.eyePoint);

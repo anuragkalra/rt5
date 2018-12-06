@@ -30,32 +30,33 @@ public class Plane extends Intersectable {
 		if (ray.viewDirection.dot(n) != 0) {
 			double t = -(eye.dot(n))/(ray.viewDirection.dot(n));
 			if (t < 0 || t > result.t) return;
-			Vector3d td = new Vector3d(ray.viewDirection);
-			td.scale(t);
+			Vector3d tdVEC = new Vector3d(ray.viewDirection);
+			
+			tdVEC.scale(t);
 			Point3d p = new Point3d(eye);
-			p.add(td);
+			p.add(tdVEC);
 				
 			//If a material is defined, choose the color based on where it is in the checker pattern
-			Material m = null;
+			Material matInit = null;
 			boolean x = (((int) Math.ceil(p.x)) % 2) == 0 ? true : false;
 			boolean z = (((int) Math.ceil(p.z)) % 2) == 0 ? true : false;
 			if (x == z) { 
-				m = this.material;
+				matInit = this.material;
 			}
 			
 			else {
 				if (material2 == null) {
-					m = material;
+					matInit = material;
 				}
 				else {
-					m = material2;
+					matInit = material2;
 				}
 			}
 				
 			result.n.set(n);
 			result.p.set(p);
 			result.t = t;
-			result.material = m;
+			result.material = matInit;
 		}
     	
     }

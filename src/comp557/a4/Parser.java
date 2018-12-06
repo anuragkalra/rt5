@@ -28,10 +28,9 @@ public class Parser {
             scene.ambient.set(x, y, z);   
             s.close();
         }
-        // Added parsing for the number of recursive reflection calls.
-        Node reflectionsAttr = dataNode.getAttributes().getNamedItem("reflections");
-        if( reflectionsAttr != null ) {
-        	Scanner s = new Scanner( reflectionsAttr.getNodeValue());
+        Node reflectionsCount = dataNode.getAttributes().getNamedItem("reflections");
+        if( reflectionsCount != null ) {
+        	Scanner s = new Scanner( reflectionsCount.getNodeValue());
             scene.reflections=s.nextInt();  
             s.close();
         }
@@ -286,15 +285,17 @@ public class Parser {
 	            material.specular.set(r,g,b,a);   
 	            s.close();
 	    	}
-	    	// Added parsing of the material mirror color
+	    	
+	    	// Capture mirror attribute from file during parse
 	    	Node mirrorAttr = dataNode.getAttributes().getNamedItem("mirror");
 	    	if ( mirrorAttr != null ) {
 	        	Scanner s = new Scanner( mirrorAttr.getNodeValue());
-	            float r = s.nextFloat();
-	            float g = s.nextFloat();
-	            float b = s.nextFloat();
+	            //System.out.println(s.next());
+	        	float rMirror = s.nextFloat();
+	            float gMirror = s.nextFloat();
+	            float bMirror = s.nextFloat();
 	            float a = (s.hasNextFloat() ? s.nextFloat() : 1);
-	            material.mirror.set(r,g,b,a);   
+	            material.mirror.set(rMirror,gMirror,bMirror,a);   
 	            s.close();
 	    	}
 	    	Node hardnessAttr = dataNode.getAttributes().getNamedItem("hardness");
@@ -329,7 +330,8 @@ public class Parser {
             render.samples = s.nextInt(); 
 			s.close();
 		}
-		// Added parsing of the jitter attribute
+		
+		//Objective 8: modify parser to capture jitter attribute
 		Node jitterAttr=dataNode.getAttributes().getNamedItem("jitter");
 		if(jitterAttr !=null){//If there is a jitter attribute in the parser tag
         	Scanner s = new Scanner( jitterAttr.getNodeValue());

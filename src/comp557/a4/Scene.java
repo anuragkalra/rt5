@@ -29,10 +29,10 @@ public class Scene {
     /** Contains information about how to render the scene */
     public Render render;
     
-    /** The ambient light colour */
+    /** The ambient light color */
     public Color3f ambient = new Color3f();
     
-    /** The number of recursive reflection calls */
+    /** Number of reflections for recursion parameter */
     public int reflections = 0;
     
     public static double epsilonScaler = 1e-9;
@@ -151,7 +151,9 @@ public class Scene {
     		float AMB_Y = ambient.y * result.material.diffuse.y;
     		float AMB_Z = ambient.z * result.material.diffuse.z;
     		L = new Color4f(AMB_X, AMB_Y, AMB_Z, 0);
+    		
     		// Then we sum the diffuse and specular contribution of each light
+    		
     		for(String key: lights.keySet()){
     			Light currentLight = lights.get(key);
 
@@ -167,48 +169,52 @@ public class Scene {
         			bisector.add(l);
         			bisector.normalize();
         			
-
-        			Color4f diffuse = new Color4f(result.material.diffuse.x * currentLight.color.x,
-        					result.material.diffuse.y * currentLight.color.y, result.material.diffuse.z * currentLight.color.z, 1);
-        			diffuse.scale((float)(currentLight.power * Math.max(0, result.n.dot(l))));
-        			L.add(diffuse);// Add diffuse contribution
+        			float DIFF_X = result.material.diffuse.x * currentLight.color.x;
+        			float DIFF_Y = result.material.diffuse.y * currentLight.color.y;
+        			float DIFF_Z = result.material.diffuse.z * currentLight.color.z;
         			
+        			Color4f diffuseComponent_i = new Color4f(DIFF_X, DIFF_Y, DIFF_Z, 1);
 
-        			Color4f specular=new Color4f(result.material.specular.x*currentLight.color.x,
-        					result.material.specular.y * currentLight.color.y,result.material.specular.z * currentLight.color.z,1);
-        			specular.scale((float)(currentLight.power * Math.pow(Math.max(0, result.n.dot(bisector)), result.material.shinyness)));
-        			L.add(specular);// Add specular contribution
+        			diffuseComponent_i.scale((float)(currentLight.power * Math.max(0, result.n.dot(l))));
+        			L.add(diffuseComponent_i);// Add diffuse contribution
         			
-        			if(level > 0){// If we are not at the last level of recursion
-        				// Cast a reflected ray starting from the intersection point
-        				Ray refRay=new Ray();
-        				refRay.viewDirection.set(result.n);
-        				refRay.viewDirection.scale(-2*ray.viewDirection.dot(result.n));
-        				refRay.viewDirection.add(ray.viewDirection);
-        				// The ray's origin is the intersection point plus an epsilon offset
-        				// to avoid calculating self-reflections
-        				refRay.eyePoint = new Point3d(refRay.viewDirection);
-        				refRay.eyePoint.scale(1e-9);
-        				refRay.eyePoint.add(result.p);        				// Calculate the intersection of the reflected ray
+        			float SPEC_X = result.material.specular.x*currentLight.color.x;
+        			float SPEC_Y = result.material.specular.y * currentLight.color.y;
+        			float SPEC_Z = result.material.specular.z * currentLight.color.z;
+        			
+        			Color4f specularComponent_i = new Color4f(SPEC_X, SPEC_Y, SPEC_Z, 1);
+        			
+        			specularComponent_i.scale((float)(currentLight.power * Math.pow(Math.max(0, result.n.dot(bisector)), result.material.shinyness)));
+        			L.add(specularComponent_i);// Add specular contribution
+        			
+        			if(level > 0){
+        				Ray reflectedRay=new Ray();
+        				reflectedRay.viewDirection.set(result.n);
+        				reflectedRay.viewDirection.scale(-2 * ray.viewDirection.dot(result.n));
+        				reflectedRay.viewDirection.add(ray.viewDirection);
+        				
+        				reflectedRay.eyePoint = new Point3d(reflectedRay.viewDirection);
+        				reflectedRay.eyePoint.scale(1e-9);
+        				reflectedRay.eyePoint.add(result.p);        				
         				IntersectResult res = new IntersectResult();
         				for(Intersectable surface:surfaceList){
-                    		surface.intersect(refRay, res);
+                    		surface.intersect(reflectedRay, res);
                     	}
-        				res.n.normalize();//make the normal unit length
-        				// If the reflected ray intersects a surface
+        				res.n.normalize();
+        				
         				if(res.t < Double.POSITIVE_INFINITY){
-        					//Recursively call calculateColor to detect the color at the intersection
-        					// of the reflected ray, and scale it by the material's reflection (mirror) coefficient
             				Color4f reflection = calcColorValue(ray, res, level - 1);
-            				reflection = new Color4f(result.material.mirror.x * reflection.x, result.material.mirror.y * reflection.y,
-            						result.material.mirror.z * reflection.z, 1);
-            				L.add(reflection);// Add reflection contribution
+            				float REF_X_ACCUM = result.material.mirror.x * reflection.x;
+            				float REF_Y_ACCUM = result.material.mirror.y * reflection.y;
+            				float REF_Z_ACCUM = result.material.mirror.z * reflection.z;
+            				reflection = new Color4f(REF_X_ACCUM, REF_Y_ACCUM, REF_Z_ACCUM, 1);            				
+            				L.add(reflection);
         				}
         			}
         		}
     		}
     	}
-		return L;// Return the contribution of all lights
+		return L;
     }
     
     /**

@@ -27,7 +27,7 @@ public class Scene {
     public Color3f ambient = new Color3f();
     
     /** The number of recursive reflection calls */
-    public int reflections=0;
+    public int reflections = 0;
 
     /** 
      * Default constructor.
@@ -104,7 +104,7 @@ public class Scene {
                 	}
                 	result.n.normalize();//Normalize the intersection's normal
                 	//Calculate the pixel color for the ray and add it to the total color
-                	Color4f c=calculateColor(ray, result, reflections);
+                	Color4f c=calcColorValue(ray, result, reflections);
                 	total.add(c);//add to total
             	}
             	
@@ -139,7 +139,7 @@ public class Scene {
      * @param level The recursive level for reflections
      * @return The color for the ray's intersection
      */
-    public Color4f calculateColor(final Ray ray, final IntersectResult result, int level){
+    public Color4f calcColorValue(final Ray ray, final IntersectResult result, int level){
     	//By default, the color will be the background color of the render.
     	Color4f L = new Color4f(render.bgcolor.x, render.bgcolor.y, render.bgcolor.z, 0);
     	//If the ray intersects a surface
@@ -193,8 +193,7 @@ public class Scene {
         				// to avoid calculating self-reflections
         				refRay.eyePoint=new Point3d(refRay.viewDirection);
         				refRay.eyePoint.scale(1e-9);
-        				refRay.eyePoint.add(result.p)
-;        				// Calculate the intersection of the reflected ray
+        				refRay.eyePoint.add(result.p);        				// Calculate the intersection of the reflected ray
         				IntersectResult res=new IntersectResult();
         				for(Intersectable surface:surfaceList){
                     		surface.intersect(refRay, res);
@@ -204,7 +203,7 @@ public class Scene {
         				if(res.t<Double.POSITIVE_INFINITY){
         					//Recursively call calculateColor to detect the color at the intersection
         					// of the reflected ray, and scale it by the material's reflection (mirror) coefficient
-            				Color4f reflection=calculateColor(ray, res, level-1);
+            				Color4f reflection=calcColorValue(ray, res, level-1);
             				reflection=new Color4f(result.material.mirror.x*reflection.x, result.material.mirror.y*reflection.y,
             						result.material.mirror.z*reflection.z, 1);
             				L.add(reflection);// Add reflection contribution
